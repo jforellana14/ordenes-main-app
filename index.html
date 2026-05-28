@@ -109,7 +109,15 @@
           <td>${doc.no_orden_carga || ""}</td>
           <td>${doc.peso_entregado || ""}</td>
           <td>${doc.no_constancia_viaje || ""}</td>
-          <td>${doc.image_path || ""}</td>
+          <td>
+            ${
+                doc.image_path
+                  ? `<a href="${API_URL}${doc.image_path}" target="_blank">
+                       Ver imagen
+                     </a>`
+                  : ""
+            }
+          </td>
         `;
 
         tbody.appendChild(row);
