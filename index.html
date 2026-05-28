@@ -64,6 +64,8 @@
 
   <button onclick="loadDocuments()">Actualizar registros</button>
   <button onclick="downloadExcel()">Descargar Excel</button>
+  <button onclick="wakeServer()">Levantar servidor</button>
+  <p id="serverStatus">Servidor: verificando...</p>
 
   <table>
     <thead>
@@ -87,6 +89,41 @@
 
     let documents = [];
 
+    async function wakeServer() {
+      const status = document.getElementById("serverStatus");
+
+      try {
+        status.textContent = "Servidor: despertando...";
+
+        const response = await fetch(`${API_URL}/`);
+
+        if (response.ok) {
+          status.textContent = "Servidor: conectado";
+          await loadDocuments();
+        } else {
+          status.textContent = "Servidor: respondió con error";
+        }
+
+      } catch (error) {
+        status.textContent = "Servidor: intentando de nuevo...";
+
+        setTimeout(async () => {
+          try {
+            const response = await fetch(`${API_URL}/`);
+
+            if (response.ok) {
+              status.textContent = "Servidor: conectado";
+              await loadDocuments();
+            } else {
+              status.textContent = "Servidor: error";
+            }
+          } catch (error) {
+            status.textContent = "Servidor: no disponible";
+          }
+        }, 15000);
+      }
+    }
+    
     async function loadDocuments() {
       const response = await fetch(`${API_URL}/documents`);
       documents = await response.json();
@@ -138,7 +175,7 @@
       window.location.href = `${API_URL}/export/excel`;
     }
 
-    loadDocuments();
+    wakeServer();
   </script>
 
 </body>
