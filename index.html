@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Órdenes de Viaje</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #111827;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #374151;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #1e293b;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 20px;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Registro de Órdenes de Viaje</h1>
+
+  <input id="searchInput" placeholder="Buscar..." oninput="filterTable()" />
+
+  <br />
+
+  <button onclick="loadDocuments()">Actualizar registros</button>
+  <button onclick="downloadExcel()">Descargar Excel</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Origen</th>
+        <th>Destino</th>
+        <th>Producto</th>
+        <th>Piloto</th>
+        <th>No. Orden</th>
+        <th>Peso</th>
+        <th>No. Constancia</th>
+        <th>Imagen</th>
+      </tr>
+    </thead>
+    <tbody id="documentsTable"></tbody>
+  </table>
+
+  <script>
+    const API_URL = "https://ocr-backend-c3gk.onrender.com";
+
+    let documents = [];
+
+    async function loadDocuments() {
+      const response = await fetch(`${API_URL}/documents`);
+      documents = await response.json();
+      renderTable(documents);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("documentsTable");
+      tbody.innerHTML = "";
+
+      data.forEach(doc => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${doc.fecha || ""}</td>
+          <td>${doc.origen || ""}</td>
+          <td>${doc.destino || ""}</td>
+          <td>${doc.producto || ""}</td>
+          <td>${doc.piloto || ""}</td>
+          <td>${doc.no_orden_carga || ""}</td>
+          <td>${doc.peso_entregado || ""}</td>
+          <td>${doc.no_constancia_viaje || ""}</td>
+          <td>${doc.image_path || ""}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function filterTable() {
+      const query = document.getElementById("searchInput").value.toUpperCase();
+
+      const filtered = documents.filter(doc => {
+        return JSON.stringify(doc).toUpperCase().includes(query);
+      });
+
+      renderTable(filtered);
+    }
+
+    function downloadExcel() {
+      window.location.href = `${API_URL}/export/excel`;
+    }
+
+    loadDocuments();
+  </script>
+
+</body>
+</html>
