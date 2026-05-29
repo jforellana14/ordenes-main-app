@@ -125,9 +125,17 @@
     }
     
     async function loadDocuments() {
-      const response = await fetch(`${API_URL}/documents`);
-      documents = await response.json();
-      renderTable(documents);
+      try {
+        const response = await fetch(`${API_URL}/documents`);
+        if (!response.ok) {
+          alert(`Error servidor: ${response.status}`);
+          return;
+        }
+        documents = await response.json();
+        renderTable(documents);
+      } catch (error) {
+        alert(`No conecta con servidor: ${error.message}`);
+      }
     }
 
     function renderTable(data) {
@@ -148,11 +156,9 @@
           <td>${doc.no_constancia_viaje || ""}</td>
           <td>
             ${
-                doc.image_path
-                  ? `<a href="${doc.image_path}" target="_blank">Ver imagen</a>`
-                       Ver imagen
-                     </a>`
-                  : ""
+              doc.image_path
+                ? `<a href="${doc.image_path}" target="_blank">Ver imagen</a>`
+                : ""
             }
           </td>
         `;
