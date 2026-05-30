@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Órdenes de Viaje</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,14 +17,30 @@
     }
 
     button {
-      padding: 12px 18px;
+      padding: 10px 14px;
       border: none;
       border-radius: 8px;
       background: #2563eb;
       color: white;
       cursor: pointer;
-      margin-right: 10px;
+      margin-right: 8px;
+      margin-bottom: 12px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .delete-btn {
+      background: #dc2626;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
       margin-bottom: 20px;
+      width: 300px;
     }
 
     table {
@@ -39,21 +56,29 @@
       border-bottom: 1px solid #374151;
       text-align: left;
       font-size: 14px;
+      vertical-align: middle;
     }
 
     th {
       background: #1e293b;
     }
 
-    input {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
+    a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    #serverStatus {
       margin-bottom: 20px;
-      width: 300px;
+      color: #93c5fd;
     }
   </style>
 </head>
+
 <body>
 
   <h1>Registro de Órdenes de Viaje</h1>
@@ -62,9 +87,10 @@
 
   <br />
 
+  <button onclick="wakeServer()">Levantar servidor</button>
   <button onclick="loadDocuments()">Actualizar registros</button>
   <button onclick="downloadExcel()">Descargar Excel</button>
-  <button onclick="wakeServer()">Levantar servidor</button>
+
   <p id="serverStatus">Servidor: verificando...</p>
 
   <table>
@@ -79,8 +105,10 @@
         <th>Peso</th>
         <th>No. Constancia</th>
         <th>Imagen</th>
+        <th>Acciones</th>
       </tr>
     </thead>
+
     <tbody id="documentsTable"></tbody>
   </table>
 
@@ -117,22 +145,26 @@
             } else {
               status.textContent = "Servidor: error";
             }
+
           } catch (error) {
             status.textContent = "Servidor: no disponible";
           }
         }, 15000);
       }
     }
-    
+
     async function loadDocuments() {
       try {
         const response = await fetch(`${API_URL}/documents`);
+
         if (!response.ok) {
           alert(`Error servidor: ${response.status}`);
           return;
         }
+
         documents = await response.json();
         renderTable(documents);
+
       } catch (error) {
         alert(`No conecta con servidor: ${error.message}`);
       }
@@ -161,6 +193,10 @@
                 : ""
             }
           </td>
+          <td>
+            <button onclick="editDocument(${doc.id})">Editar</button>
+            <button class="delete-btn" onclick="deleteDocument(${doc.id})">Eliminar</button>
+          </td>
         `;
 
         tbody.appendChild(row);
@@ -179,6 +215,100 @@
 
     function downloadExcel() {
       window.location.href = `${API_URL}/export/excel`;
+    }
+
+    async function editDocument(id) {
+      const doc = documents.find(d => d.id === id);
+
+      if (!doc) return;
+
+      const fecha = prompt("Fecha:", doc.fecha || "");
+      if (fecha === null) return;
+
+      const origen = prompt("Origen:", doc.origen || "");
+      if (origen === null) return;
+
+      const destino = prompt("Destino:", doc.destino || "");
+      if (destino === null) return;
+
+      const producto = prompt("Producto:", doc.producto || "");
+      if (producto === null) return;
+
+      const piloto = prompt("Piloto:", doc.piloto || "");
+      if (piloto === null) return;
+
+      const no_orden_carga = prompt(
+        "No. Orden de Carga:",
+        doc.no_orden_carga || ""
+      );
+      if (no_orden_carga === null) return;
+
+      const peso_entregado = prompt(
+        "Peso Entregado:",
+        doc.peso_entregado || ""
+      );
+      if (peso_entregado === null) return;
+
+      const no_constancia_viaje = prompt(
+        "No. Constancia de Viaje:",
+        doc.no_constancia_viaje || ""
+      );
+      if (no_constancia_viaje === null) return;
+
+      const payload = {
+        fecha,
+        origen,
+        destino,
+        producto,
+        piloto,
+        no_orden_carga,
+        peso_entregado,
+        no_constancia_viaje
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/documents/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          alert("Registro actualizado");
+          await loadDocuments();
+        } else {
+          alert(`Error actualizando registro: ${response.status}`);
+        }
+
+      } catch (error) {
+        alert(`No se pudo actualizar: ${error.message}`);
+      }
+    }
+
+    async function deleteDocument(id) {
+      const confirmDelete = confirm(
+        "¿Seguro que deseas eliminar este registro?"
+      );
+
+      if (!confirmDelete) return;
+
+      try {
+        const response = await fetch(`${API_URL}/documents/${id}`, {
+          method: "DELETE"
+        });
+
+        if (response.ok) {
+          alert("Registro eliminado");
+          await loadDocuments();
+        } else {
+          alert(`Error eliminando registro: ${response.status}`);
+        }
+
+      } catch (error) {
+        alert(`No se pudo eliminar: ${error.message}`);
+      }
     }
 
     wakeServer();
