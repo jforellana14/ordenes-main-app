@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Órdenes de Viaje</title>
+  <title>Transportes JDA</title>
 
   <style>
     body {
@@ -12,9 +12,7 @@
       padding: 30px;
     }
 
-    h1 {
-      margin-bottom: 20px;
-    }
+    h1 { margin-bottom: 20px; }
 
     button {
       padding: 10px 14px;
@@ -27,13 +25,11 @@
       margin-bottom: 12px;
     }
 
-    button:hover {
-      opacity: 0.9;
-    }
+    button:hover { opacity: 0.9; }
 
-    .delete-btn {
-      background: #dc2626;
-    }
+    .delete-btn { background: #dc2626; }
+    .secondary-btn { background: #475569; }
+    .success-btn { background: #16a34a; }
 
     input {
       padding: 10px;
@@ -49,6 +45,7 @@
       background: #111827;
       border-radius: 10px;
       overflow: hidden;
+      margin-top: 10px;
     }
 
     th, td {
@@ -59,63 +56,115 @@
       vertical-align: middle;
     }
 
-    th {
-      background: #1e293b;
-    }
+    th { background: #1e293b; }
 
     a {
       color: #60a5fa;
       text-decoration: none;
     }
 
-    a:hover {
-      text-decoration: underline;
-    }
+    a:hover { text-decoration: underline; }
 
     #serverStatus {
       margin-bottom: 20px;
       color: #93c5fd;
+    }
+
+    .hidden { display: none; }
+
+    .tabs {
+      margin-bottom: 20px;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>Registro de Órdenes de Viaje</h1>
+  <h1>Transportes JDA</h1>
 
-  <input id="searchInput" placeholder="Buscar..." oninput="filterTable()" />
-
-  <br />
-
-  <button onclick="wakeServer()">Levantar servidor</button>
-  <button onclick="loadDocuments()">Actualizar registros</button>
-  <button onclick="downloadExcel()">Descargar Excel</button>
+  <div class="tabs">
+    <button onclick="showSection('boletas')">Boletas</button>
+    <button onclick="showSection('pilotos')">Pilotos</button>
+    <button onclick="wakeServer()" class="secondary-btn">Levantar servidor</button>
+  </div>
 
   <p id="serverStatus">Servidor: verificando...</p>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Origen</th>
-        <th>Destino</th>
-        <th>Producto</th>
-        <th>Piloto</th>
-        <th>No. Orden</th>
-        <th>Peso</th>
-        <th>No. Constancia</th>
-        <th>Imagen</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
+  <section id="boletasSection">
+    <h2>Registro de Órdenes de Viaje</h2>
 
-    <tbody id="documentsTable"></tbody>
-  </table>
+    <input id="searchInput" placeholder="Buscar boleta..." oninput="filterTable()" />
+
+    <br />
+
+    <button onclick="loadDocuments()">Actualizar registros</button>
+    <button onclick="downloadExcel()">Descargar Excel</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Origen</th>
+          <th>Destino</th>
+          <th>Producto</th>
+          <th>Piloto</th>
+          <th>No. Orden</th>
+          <th>Peso</th>
+          <th>No. Constancia</th>
+          <th>Imagen</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody id="documentsTable"></tbody>
+    </table>
+  </section>
+
+  <section id="pilotosSection" class="hidden">
+    <h2>Catálogo de Pilotos</h2>
+
+    <input id="pilotNameInput" placeholder="Nombre del piloto" />
+
+    <br />
+
+    <button onclick="createPilot()" class="success-btn">Agregar piloto</button>
+    <button onclick="loadPilots()">Actualizar pilotos</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th>Fecha creación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody id="pilotsTable"></tbody>
+    </table>
+  </section>
 
   <script>
     const API_URL = "https://ocr-backend-c3gk.onrender.com";
 
     let documents = [];
+    let pilots = [];
+
+    function showSection(section) {
+      document.getElementById("boletasSection").classList.add("hidden");
+      document.getElementById("pilotosSection").classList.add("hidden");
+
+      if (section === "boletas") {
+        document.getElementById("boletasSection").classList.remove("hidden");
+        loadDocuments();
+      }
+
+      if (section === "pilotos") {
+        document.getElementById("pilotosSection").classList.remove("hidden");
+        loadPilots();
+      }
+    }
 
     async function wakeServer() {
       const status = document.getElementById("serverStatus");
@@ -128,6 +177,7 @@
         if (response.ok) {
           status.textContent = "Servidor: conectado";
           await loadDocuments();
+          await loadPilots();
         } else {
           status.textContent = "Servidor: respondió con error";
         }
@@ -142,6 +192,7 @@
             if (response.ok) {
               status.textContent = "Servidor: conectado";
               await loadDocuments();
+              await loadPilots();
             } else {
               status.textContent = "Servidor: error";
             }
@@ -163,14 +214,14 @@
         }
 
         documents = await response.json();
-        renderTable(documents);
+        renderDocuments(documents);
 
       } catch (error) {
         alert(`No conecta con servidor: ${error.message}`);
       }
     }
 
-    function renderTable(data) {
+    function renderDocuments(data) {
       const tbody = document.getElementById("documentsTable");
       tbody.innerHTML = "";
 
@@ -210,7 +261,7 @@
         return JSON.stringify(doc).toUpperCase().includes(query);
       });
 
-      renderTable(filtered);
+      renderDocuments(filtered);
     }
 
     function downloadExcel() {
@@ -219,7 +270,6 @@
 
     async function editDocument(id) {
       const doc = documents.find(d => d.id === id);
-
       if (!doc) return;
 
       const fecha = prompt("Fecha:", doc.fecha || "");
@@ -237,22 +287,13 @@
       const piloto = prompt("Piloto:", doc.piloto || "");
       if (piloto === null) return;
 
-      const no_orden_carga = prompt(
-        "No. Orden de Carga:",
-        doc.no_orden_carga || ""
-      );
+      const no_orden_carga = prompt("No. Orden de Carga:", doc.no_orden_carga || "");
       if (no_orden_carga === null) return;
 
-      const peso_entregado = prompt(
-        "Peso Entregado:",
-        doc.peso_entregado || ""
-      );
+      const peso_entregado = prompt("Peso Entregado:", doc.peso_entregado || "");
       if (peso_entregado === null) return;
 
-      const no_constancia_viaje = prompt(
-        "No. Constancia de Viaje:",
-        doc.no_constancia_viaje || ""
-      );
+      const no_constancia_viaje = prompt("No. Constancia de Viaje:", doc.no_constancia_viaje || "");
       if (no_constancia_viaje === null) return;
 
       const payload = {
@@ -269,9 +310,7 @@
       try {
         const response = await fetch(`${API_URL}/documents/${id}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
 
@@ -288,10 +327,7 @@
     }
 
     async function deleteDocument(id) {
-      const confirmDelete = confirm(
-        "¿Seguro que deseas eliminar este registro?"
-      );
-
+      const confirmDelete = confirm("¿Seguro que deseas eliminar este registro?");
       if (!confirmDelete) return;
 
       try {
@@ -308,6 +344,122 @@
 
       } catch (error) {
         alert(`No se pudo eliminar: ${error.message}`);
+      }
+    }
+
+    async function loadPilots() {
+      try {
+        const response = await fetch(`${API_URL}/pilots`);
+
+        if (!response.ok) {
+          alert(`Error cargando pilotos: ${response.status}`);
+          return;
+        }
+
+        pilots = await response.json();
+        renderPilots(pilots);
+
+      } catch (error) {
+        alert(`No conecta con pilotos: ${error.message}`);
+      }
+    }
+
+    function renderPilots(data) {
+      const tbody = document.getElementById("pilotsTable");
+      tbody.innerHTML = "";
+
+      data.forEach(pilot => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${pilot.id}</td>
+          <td>${pilot.nombre}</td>
+          <td>${pilot.activo}</td>
+          <td>${pilot.created_at || ""}</td>
+          <td>
+            <button onclick="editPilot(${pilot.id})">Editar</button>
+            <button class="delete-btn" onclick="deletePilot(${pilot.id})">Desactivar</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    async function createPilot() {
+      const input = document.getElementById("pilotNameInput");
+      const nombre = input.value.trim().toUpperCase();
+
+      if (!nombre) {
+        alert("Ingresa el nombre del piloto");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/pilots`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre })
+        });
+
+        if (response.ok) {
+          alert("Piloto agregado");
+          input.value = "";
+          await loadPilots();
+        } else {
+          const errorText = await response.text();
+          alert(`Error agregando piloto: ${response.status} - ${errorText}`);
+        }
+
+      } catch (error) {
+        alert(`No se pudo agregar piloto: ${error.message}`);
+      }
+    }
+
+    async function editPilot(id) {
+      const pilot = pilots.find(p => p.id === id);
+      if (!pilot) return;
+
+      const nombre = prompt("Nombre del piloto:", pilot.nombre || "");
+      if (nombre === null) return;
+
+      try {
+        const response = await fetch(`${API_URL}/pilots/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: nombre.toUpperCase() })
+        });
+
+        if (response.ok) {
+          alert("Piloto actualizado");
+          await loadPilots();
+        } else {
+          alert(`Error actualizando piloto: ${response.status}`);
+        }
+
+      } catch (error) {
+        alert(`No se pudo actualizar piloto: ${error.message}`);
+      }
+    }
+
+    async function deletePilot(id) {
+      const confirmDelete = confirm("¿Seguro que deseas desactivar este piloto?");
+      if (!confirmDelete) return;
+
+      try {
+        const response = await fetch(`${API_URL}/pilots/${id}`, {
+          method: "DELETE"
+        });
+
+        if (response.ok) {
+          alert("Piloto desactivado");
+          await loadPilots();
+        } else {
+          alert(`Error desactivando piloto: ${response.status}`);
+        }
+
+      } catch (error) {
+        alert(`No se pudo desactivar piloto: ${error.message}`);
       }
     }
 
