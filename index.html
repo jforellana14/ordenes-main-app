@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Transportes JDA</title>
+  <title>Transportes JDA Dashboard</title>
 
   <style>
     body {
@@ -12,7 +12,16 @@
       padding: 30px;
     }
 
-    h1 { margin-bottom: 20px; }
+    h1, h2 {
+      margin-bottom: 15px;
+    }
+
+    input, select {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 5px;
+    }
 
     button {
       padding: 10px 14px;
@@ -21,96 +30,133 @@
       background: #2563eb;
       color: white;
       cursor: pointer;
-      margin-right: 8px;
-      margin-bottom: 12px;
+      margin: 5px;
     }
 
-    button:hover { opacity: 0.9; }
+    .danger {
+      background: #dc2626;
+    }
 
-    .delete-btn { background: #dc2626; }
-    .secondary-btn { background: #475569; }
-    .success-btn { background: #16a34a; }
+    .success {
+      background: #16a34a;
+    }
 
-    input {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin-bottom: 20px;
-      width: 300px;
+    .hidden {
+      display: none;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: #111827;
+      margin-top: 20px;
       border-radius: 10px;
       overflow: hidden;
-      margin-top: 10px;
     }
 
     th, td {
-      padding: 12px;
+      padding: 10px;
       border-bottom: 1px solid #374151;
+      font-size: 13px;
       text-align: left;
-      font-size: 14px;
-      vertical-align: middle;
     }
 
-    th { background: #1e293b; }
-
-    a {
-      color: #60a5fa;
-      text-decoration: none;
+    th {
+      background: #1e293b;
     }
 
-    a:hover { text-decoration: underline; }
+    img {
+      width: 80px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
 
-    #serverStatus {
+    .card {
+      background: #111827;
+      padding: 20px;
+      border-radius: 12px;
       margin-bottom: 20px;
+    }
+
+    #status {
       color: #93c5fd;
-    }
-
-    .hidden { display: none; }
-
-    .tabs {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>Transportes JDA</h1>
+  <section id="loginSection" class="card">
+    <h1>Transportes JDA</h1>
+    <h2>Dashboard Login</h2>
 
-  <div class="tabs">
-    <button onclick="showSection('boletas')">Boletas</button>
-    <button onclick="showSection('pilotos')">Pilotos</button>
-    <button onclick="wakeServer()" class="secondary-btn">Levantar servidor</button>
-  </div>
+    <input id="username" placeholder="Usuario" />
+    <input id="password" type="password" placeholder="Contraseña" />
 
-  <p id="serverStatus">Servidor: verificando...</p>
+    <button onclick="login()">Ingresar</button>
 
-  <section id="boletasSection">
-    <h2>Registro de Órdenes de Viaje</h2>
+    <p id="loginMessage"></p>
+  </section>
 
-    <input id="searchInput" placeholder="Buscar boleta..." oninput="filterTable()" />
+  <section id="dashboardSection" class="hidden">
 
-    <br />
+    <h1>Transportes JDA Dashboard</h1>
 
-    <button onclick="loadDocuments()">Actualizar registros</button>
-    <button onclick="downloadExcel()">Descargar Excel</button>
+    <p id="status">Servidor: verificando...</p>
+    <p id="userInfo"></p>
+
+    <button onclick="logout()" class="danger">Salir</button>
+    <button onclick="wakeServer()">Levantar servidor</button>
+    <button onclick="loadDocuments()">Actualizar</button>
+    <button onclick="downloadExcel()" class="success">Descargar Excel filtrado</button>
+
+    <div class="card">
+      <h2>Filtros</h2>
+
+      <input id="searchInput" placeholder="Buscar general..." oninput="applyFiltersAndSort()" />
+
+      <select id="pilotFilter" onchange="applyFiltersAndSort()">
+        <option value="">Todos los pilotos</option>
+      </select>
+
+      <input id="origenFilter" placeholder="Origen" oninput="applyFiltersAndSort()" />
+      <input id="destinoFilter" placeholder="Destino" oninput="applyFiltersAndSort()" />
+      <input id="productoFilter" placeholder="Producto" oninput="applyFiltersAndSort()" />
+
+      <br />
+
+      <label>Ordenar por:</label>
+      <select id="sortField" onchange="applyFiltersAndSort()">
+        <option value="fecha">Fecha</option>
+        <option value="piloto">Piloto</option>
+        <option value="origen">Origen</option>
+        <option value="destino">Destino</option>
+        <option value="producto">Producto</option>
+        <option value="no_orden_carga">No. Orden</option>
+        <option value="peso_entregado">Peso</option>
+        <option value="created_by_username">Usuario</option>
+      </select>
+
+      <select id="sortDirection" onchange="applyFiltersAndSort()">
+        <option value="desc">Descendente</option>
+        <option value="asc">Ascendente</option>
+      </select>
+    </div>
 
     <table>
       <thead>
         <tr>
+          <th>ID</th>
           <th>Fecha</th>
           <th>Origen</th>
           <th>Destino</th>
           <th>Producto</th>
           <th>Piloto</th>
+          <th>Usuario</th>
           <th>No. Orden</th>
           <th>Peso</th>
-          <th>No. Constancia</th>
+          <th>Constancia</th>
           <th>Imagen</th>
           <th>Acciones</th>
         </tr>
@@ -118,107 +164,224 @@
 
       <tbody id="documentsTable"></tbody>
     </table>
-  </section>
 
-  <section id="pilotosSection" class="hidden">
-    <h2>Catálogo de Pilotos</h2>
-
-    <input id="pilotNameInput" placeholder="Nombre del piloto" />
-
-    <br />
-
-    <button onclick="createPilot()" class="success-btn">Agregar piloto</button>
-    <button onclick="loadPilots()">Actualizar pilotos</button>
-
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Estado</th>
-          <th>Fecha creación</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-
-      <tbody id="pilotsTable"></tbody>
-    </table>
   </section>
 
   <script>
     const API_URL = "https://ocr-backend-c3gk.onrender.com";
 
+    let token = localStorage.getItem("token") || "";
+    let role = localStorage.getItem("role") || "";
+    let username = localStorage.getItem("username") || "";
     let documents = [];
-    let pilots = [];
 
-    function showSection(section) {
-      document.getElementById("boletasSection").classList.add("hidden");
-      document.getElementById("pilotosSection").classList.add("hidden");
+    function authHeaders() {
+      return {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
+    }
 
-      if (section === "boletas") {
-        document.getElementById("boletasSection").classList.remove("hidden");
-        loadDocuments();
-      }
+    async function login() {
+      const user = document.getElementById("username").value.trim().toUpperCase();
+      const pass = document.getElementById("password").value;
 
-      if (section === "pilotos") {
-        document.getElementById("pilotosSection").classList.remove("hidden");
-        loadPilots();
+      const msg = document.getElementById("loginMessage");
+      msg.textContent = "Ingresando...";
+
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username: user,
+            password: pass
+          })
+        });
+
+        if (!response.ok) {
+          msg.textContent = "Usuario o contraseña incorrectos";
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.role === "PILOTO") {
+          msg.textContent = "Los pilotos solo pueden usar la app Android.";
+          return;
+        }
+
+        token = data.access_token;
+        role = data.role;
+        username = user;
+
+        localStorage.setItem("token", token);
+        localStorage.setItem("role", role);
+        localStorage.setItem("username", username);
+
+        showDashboard();
+
+      } catch (error) {
+        msg.textContent = "No se pudo conectar con el servidor";
       }
     }
 
+    function logout() {
+      localStorage.clear();
+      token = "";
+      role = "";
+      username = "";
+
+      document.getElementById("dashboardSection").classList.add("hidden");
+      document.getElementById("loginSection").classList.remove("hidden");
+    }
+
+    function showDashboard() {
+      document.getElementById("loginSection").classList.add("hidden");
+      document.getElementById("dashboardSection").classList.remove("hidden");
+
+      document.getElementById("userInfo").textContent =
+        `Usuario: ${username} | Rol: ${role}`;
+
+      wakeServer();
+    }
+
     async function wakeServer() {
-      const status = document.getElementById("serverStatus");
+      const status = document.getElementById("status");
 
       try {
         status.textContent = "Servidor: despertando...";
 
-        const response = await fetch(`${API_URL}/`);
+        const response = await fetch(`${API_URL}/`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
 
         if (response.ok) {
-          status.textContent = "Servidor: conectado";
+          status.textContent = "🟢 Servidor conectado";
           await loadDocuments();
-          await loadPilots();
         } else {
-          status.textContent = "Servidor: respondió con error";
+          status.textContent = "🟡 Servidor respondió con error";
         }
 
       } catch (error) {
-        status.textContent = "Servidor: intentando de nuevo...";
-
-        setTimeout(async () => {
-          try {
-            const response = await fetch(`${API_URL}/`);
-
-            if (response.ok) {
-              status.textContent = "Servidor: conectado";
-              await loadDocuments();
-              await loadPilots();
-            } else {
-              status.textContent = "Servidor: error";
-            }
-
-          } catch (error) {
-            status.textContent = "Servidor: no disponible";
-          }
-        }, 15000);
+        status.textContent = "🔴 Servidor no disponible";
       }
     }
 
     async function loadDocuments() {
       try {
-        const response = await fetch(`${API_URL}/documents`);
+        const url = `${API_URL}/documents?sort_by=created_at&sort_order=desc`;
+
+        const response = await fetch(url, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
 
         if (!response.ok) {
-          alert(`Error servidor: ${response.status}`);
+          alert(`Error cargando documentos: ${response.status}`);
           return;
         }
 
         documents = await response.json();
-        renderDocuments(documents);
+
+        fillPilotFilter(documents);
+        applyFiltersAndSort();
 
       } catch (error) {
         alert(`No conecta con servidor: ${error.message}`);
       }
+    }
+
+    function fillPilotFilter(data) {
+      const select = document.getElementById("pilotFilter");
+      const current = select.value;
+
+      const pilots = [...new Set(
+        data
+          .map(d => d.piloto)
+          .filter(Boolean)
+      )].sort();
+
+      select.innerHTML = `<option value="">Todos los pilotos</option>`;
+
+      pilots.forEach(pilot => {
+        const option = document.createElement("option");
+        option.value = pilot;
+        option.textContent = pilot;
+        select.appendChild(option);
+      });
+
+      select.value = current;
+    }
+
+    function parseDate(value) {
+      if (!value) return new Date(0);
+
+      const parts = value.split("/");
+
+      if (parts.length === 3) {
+        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      }
+
+      return new Date(value);
+    }
+
+    function applyFiltersAndSort() {
+      const query = document.getElementById("searchInput").value.toUpperCase();
+      const pilot = document.getElementById("pilotFilter").value.toUpperCase();
+      const origen = document.getElementById("origenFilter").value.toUpperCase();
+      const destino = document.getElementById("destinoFilter").value.toUpperCase();
+      const producto = document.getElementById("productoFilter").value.toUpperCase();
+
+      const sortField = document.getElementById("sortField").value;
+      const sortDirection = document.getElementById("sortDirection").value;
+
+      let filtered = documents.filter(doc => {
+        const generalMatch =
+          JSON.stringify(doc).toUpperCase().includes(query);
+
+        const pilotMatch =
+          !pilot || (doc.piloto || "").toUpperCase().includes(pilot);
+
+        const origenMatch =
+          !origen || (doc.origen || "").toUpperCase().includes(origen);
+
+        const destinoMatch =
+          !destino || (doc.destino || "").toUpperCase().includes(destino);
+
+        const productoMatch =
+          !producto || (doc.producto || "").toUpperCase().includes(producto);
+
+        return generalMatch &&
+          pilotMatch &&
+          origenMatch &&
+          destinoMatch &&
+          productoMatch;
+      });
+
+      filtered.sort((a, b) => {
+        let va = a[sortField] || "";
+        let vb = b[sortField] || "";
+
+        if (sortField === "fecha") {
+          va = parseDate(va);
+          vb = parseDate(vb);
+        } else {
+          va = va.toString().toUpperCase();
+          vb = vb.toString().toUpperCase();
+        }
+
+        if (va < vb) return sortDirection === "asc" ? -1 : 1;
+        if (va > vb) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+
+      renderDocuments(filtered);
     }
 
     function renderDocuments(data) {
@@ -229,43 +392,33 @@
         const row = document.createElement("tr");
 
         row.innerHTML = `
+          <td>${doc.id || ""}</td>
           <td>${doc.fecha || ""}</td>
           <td>${doc.origen || ""}</td>
           <td>${doc.destino || ""}</td>
           <td>${doc.producto || ""}</td>
           <td>${doc.piloto || ""}</td>
+          <td>${doc.created_by_username || ""}</td>
           <td>${doc.no_orden_carga || ""}</td>
           <td>${doc.peso_entregado || ""}</td>
           <td>${doc.no_constancia_viaje || ""}</td>
           <td>
             ${
               doc.image_path
-                ? `<a href="${doc.image_path}" target="_blank">Ver imagen</a>`
+                ? `<a href="${doc.image_path}" target="_blank">
+                    <img src="${doc.image_path}" />
+                   </a>`
                 : ""
             }
           </td>
           <td>
             <button onclick="editDocument(${doc.id})">Editar</button>
-            <button class="delete-btn" onclick="deleteDocument(${doc.id})">Eliminar</button>
+            <button class="danger" onclick="deleteDocument(${doc.id})">Eliminar</button>
           </td>
         `;
 
         tbody.appendChild(row);
       });
-    }
-
-    function filterTable() {
-      const query = document.getElementById("searchInput").value.toUpperCase();
-
-      const filtered = documents.filter(doc => {
-        return JSON.stringify(doc).toUpperCase().includes(query);
-      });
-
-      renderDocuments(filtered);
-    }
-
-    function downloadExcel() {
-      window.location.href = `${API_URL}/export/excel`;
     }
 
     async function editDocument(id) {
@@ -287,13 +440,13 @@
       const piloto = prompt("Piloto:", doc.piloto || "");
       if (piloto === null) return;
 
-      const no_orden_carga = prompt("No. Orden de Carga:", doc.no_orden_carga || "");
+      const no_orden_carga = prompt("No. Orden:", doc.no_orden_carga || "");
       if (no_orden_carga === null) return;
 
-      const peso_entregado = prompt("Peso Entregado:", doc.peso_entregado || "");
+      const peso_entregado = prompt("Peso:", doc.peso_entregado || "");
       if (peso_entregado === null) return;
 
-      const no_constancia_viaje = prompt("No. Constancia de Viaje:", doc.no_constancia_viaje || "");
+      const no_constancia_viaje = prompt("Constancia:", doc.no_constancia_viaje || "");
       if (no_constancia_viaje === null) return;
 
       const payload = {
@@ -307,163 +460,89 @@
         no_constancia_viaje
       };
 
-      try {
-        const response = await fetch(`${API_URL}/documents/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+      const response = await fetch(`${API_URL}/documents/${id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(payload)
+      });
 
-        if (response.ok) {
-          alert("Registro actualizado");
-          await loadDocuments();
-        } else {
-          alert(`Error actualizando registro: ${response.status}`);
-        }
-
-      } catch (error) {
-        alert(`No se pudo actualizar: ${error.message}`);
+      if (response.ok) {
+        alert("Registro actualizado");
+        await loadDocuments();
+      } else {
+        alert(`Error actualizando: ${response.status}`);
       }
     }
 
     async function deleteDocument(id) {
-      const confirmDelete = confirm("¿Seguro que deseas eliminar este registro?");
-      if (!confirmDelete) return;
+      if (!confirm("¿Seguro que deseas eliminar esta boleta?")) return;
 
-      try {
-        const response = await fetch(`${API_URL}/documents/${id}`, {
-          method: "DELETE"
-        });
-
-        if (response.ok) {
-          alert("Registro eliminado");
-          await loadDocuments();
-        } else {
-          alert(`Error eliminando registro: ${response.status}`);
+      const response = await fetch(`${API_URL}/documents/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
         }
-
-      } catch (error) {
-        alert(`No se pudo eliminar: ${error.message}`);
-      }
-    }
-
-    async function loadPilots() {
-      try {
-        const response = await fetch(`${API_URL}/pilots`);
-
-        if (!response.ok) {
-          alert(`Error cargando pilotos: ${response.status}`);
-          return;
-        }
-
-        pilots = await response.json();
-        renderPilots(pilots);
-
-      } catch (error) {
-        alert(`No conecta con pilotos: ${error.message}`);
-      }
-    }
-
-    function renderPilots(data) {
-      const tbody = document.getElementById("pilotsTable");
-      tbody.innerHTML = "";
-
-      data.forEach(pilot => {
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-          <td>${pilot.id}</td>
-          <td>${pilot.nombre}</td>
-          <td>${pilot.activo}</td>
-          <td>${pilot.created_at || ""}</td>
-          <td>
-            <button onclick="editPilot(${pilot.id})">Editar</button>
-            <button class="delete-btn" onclick="deletePilot(${pilot.id})">Desactivar</button>
-          </td>
-        `;
-
-        tbody.appendChild(row);
       });
+
+      if (response.ok) {
+        alert("Registro eliminado");
+        await loadDocuments();
+      } else {
+        alert(`Error eliminando: ${response.status}`);
+      }
     }
 
-    async function createPilot() {
-      const input = document.getElementById("pilotNameInput");
-      const nombre = input.value.trim().toUpperCase();
+    function buildFilterQuery() {
+      const params = new URLSearchParams();
 
-      if (!nombre) {
-        alert("Ingresa el nombre del piloto");
-        return;
-      }
+      const piloto = document.getElementById("pilotFilter").value;
+      const origen = document.getElementById("origenFilter").value;
+      const destino = document.getElementById("destinoFilter").value;
+      const producto = document.getElementById("productoFilter").value;
 
-      try {
-        const response = await fetch(`${API_URL}/pilots`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nombre })
-        });
+      if (piloto) params.append("piloto", piloto);
+      if (origen) params.append("origen", origen);
+      if (destino) params.append("destino", destino);
+      if (producto) params.append("producto", producto);
 
-        if (response.ok) {
-          alert("Piloto agregado");
-          input.value = "";
-          await loadPilots();
-        } else {
-          const errorText = await response.text();
-          alert(`Error agregando piloto: ${response.status} - ${errorText}`);
+      return params.toString();
+    }
+
+    function downloadExcel() {
+      const query = buildFilterQuery();
+
+      fetch(`${API_URL}/export/excel?${query}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
         }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("No se pudo descargar Excel");
+          }
 
-      } catch (error) {
-        alert(`No se pudo agregar piloto: ${error.message}`);
-      }
-    }
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
 
-    async function editPilot(id) {
-      const pilot = pilots.find(p => p.id === id);
-      if (!pilot) return;
+          a.href = url;
+          a.download = "ordenes_filtradas.xlsx";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
 
-      const nombre = prompt("Nombre del piloto:", pilot.nombre || "");
-      if (nombre === null) return;
-
-      try {
-        const response = await fetch(`${API_URL}/pilots/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nombre: nombre.toUpperCase() })
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+          alert(error.message);
         });
-
-        if (response.ok) {
-          alert("Piloto actualizado");
-          await loadPilots();
-        } else {
-          alert(`Error actualizando piloto: ${response.status}`);
-        }
-
-      } catch (error) {
-        alert(`No se pudo actualizar piloto: ${error.message}`);
-      }
     }
 
-    async function deletePilot(id) {
-      const confirmDelete = confirm("¿Seguro que deseas desactivar este piloto?");
-      if (!confirmDelete) return;
-
-      try {
-        const response = await fetch(`${API_URL}/pilots/${id}`, {
-          method: "DELETE"
-        });
-
-        if (response.ok) {
-          alert("Piloto desactivado");
-          await loadPilots();
-        } else {
-          alert(`Error desactivando piloto: ${response.status}`);
-        }
-
-      } catch (error) {
-        alert(`No se pudo desactivar piloto: ${error.message}`);
-      }
+    if (token && role && role !== "PILOTO") {
+      showDashboard();
     }
-
-    wakeServer();
   </script>
 
 </body>
