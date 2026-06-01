@@ -33,17 +33,9 @@
       margin: 5px;
     }
 
-    .danger {
-      background: #dc2626;
-    }
-
-    .success {
-      background: #16a34a;
-    }
-
-    .hidden {
-      display: none;
-    }
+    .danger { background: #dc2626; }
+    .success { background: #16a34a; }
+    .hidden { display: none; }
 
     table {
       width: 100%;
@@ -61,9 +53,7 @@
       text-align: left;
     }
 
-    th {
-      background: #1e293b;
-    }
+    th { background: #1e293b; }
 
     img {
       width: 80px;
@@ -120,6 +110,9 @@
         <option value="">Todos los pilotos</option>
       </select>
 
+      <input id="fechaDesdeFilter" type="date" onchange="applyFiltersAndSort()" />
+      <input id="fechaHastaFilter" type="date" onchange="applyFiltersAndSort()" />
+
       <input id="origenFilter" placeholder="Origen" oninput="applyFiltersAndSort()" />
       <input id="destinoFilter" placeholder="Destino" oninput="applyFiltersAndSort()" />
       <input id="productoFilter" placeholder="Producto" oninput="applyFiltersAndSort()" />
@@ -147,7 +140,7 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th>
+          <th>#</th>
           <th>Fecha</th>
           <th>Origen</th>
           <th>Destino</th>
@@ -180,6 +173,19 @@
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       };
+    }
+
+    function setCurrentMonthDefaultFilters() {
+      const now = new Date();
+
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      document.getElementById("fechaDesdeFilter").value =
+        firstDay.toISOString().split("T")[0];
+
+      document.getElementById("fechaHastaFilter").value =
+        lastDay.toISOString().split("T")[0];
     }
 
     async function login() {
@@ -221,6 +227,7 @@
         localStorage.setItem("role", role);
         localStorage.setItem("username", username);
 
+        setCurrentMonthDefaultFilters();
         showDashboard();
 
       } catch (error) {
@@ -319,16 +326,20 @@
       select.value = current;
     }
 
-    function parseDate(value) {
-      if (!value) return new Date(0);
+    function parseDocumentDate(value) {
+      if (!value) return null;
 
       const parts = value.split("/");
 
       if (parts.length === 3) {
-        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
       }
 
       return new Date(value);
+    }
+
+    function parseDate(value) {
+      return parseDocumentDate(value) || new Date(0);
     }
 
     function applyFiltersAndSort() {
@@ -338,10 +349,27 @@
       const destino = document.getElementById("destinoFilter").value.toUpperCase();
       const producto = document.getElementById("productoFilter").value.toUpperCase();
 
+      const fechaDesde = document.getElementById("fechaDesdeFilter").value;
+      const fechaHasta = document.getElementById("fechaHastaFilter").value;
+
       const sortField = document.getElementById("sortField").value;
       const sortDirection = document.getElementById("sortDirection").value;
 
       let filtered = documents.filter(doc => {
+        const docDate = parseDocumentDate(doc.fecha);
+
+        let fechaMatch = true;
+
+        if (fechaDesde && docDate) {
+          const desdeDate = new Date(`${fechaDesde}T00:00:00`);
+          fechaMatch = fechaMatch && docDate >= desdeDate;
+        }
+
+        if (fechaHasta && docDate) {
+          const hastaDate = new Date(`${fechaHasta}T23:59:59`);
+          fechaMatch = fechaMatch && docDate <= hastaDate;
+        }
+
         const generalMatch =
           JSON.stringify(doc).toUpperCase().includes(query);
 
@@ -361,7 +389,8 @@
           pilotMatch &&
           origenMatch &&
           destinoMatch &&
-          productoMatch;
+          productoMatch &&
+          fechaMatch;
       });
 
       filtered.sort((a, b) => {
@@ -388,11 +417,11 @@
       const tbody = document.getElementById("documentsTable");
       tbody.innerHTML = "";
 
-      data.forEach(doc => {
+      data.forEach((doc, index) => {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-          <td>${doc.id || ""}</td>
+          <td>${index + 1}</td>
           <td>${doc.fecha || ""}</td>
           <td>${doc.origen || ""}</td>
           <td>${doc.destino || ""}</td>
@@ -541,6 +570,7 @@
     }
 
     if (token && role && role !== "PILOTO") {
+      setCurrentMonthDefaultFilters();
       showDashboard();
     }
   </script>
