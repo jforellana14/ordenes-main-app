@@ -128,6 +128,8 @@
         <option value="producto">Producto</option>
         <option value="no_orden_carga">No. Orden</option>
         <option value="peso_entregado">Peso</option>
+        <option value="combustible">Combustible</option>
+        <option value="no_vale">No. Vale</option>
         <option value="created_by_username">Usuario</option>
       </select>
 
@@ -150,6 +152,8 @@
           <th>No. Orden</th>
           <th>Peso</th>
           <th>Constancia</th>
+          <th>Combustible</th>
+          <th>No. Vale</th>
           <th>Imagen</th>
           <th>Acciones</th>
         </tr>
@@ -430,7 +434,10 @@
           <td>${doc.created_by_username || ""}</td>
           <td>${doc.no_orden_carga || ""}</td>
           <td>${doc.peso_entregado || ""}</td>
+          
           <td>${doc.no_constancia_viaje || ""}</td>
+          <td>${doc.combustible || ""}</td>
+          <td>${doc.no_vale || ""}</td>
           <td>
             ${
               doc.image_path
@@ -475,6 +482,12 @@
       const peso_entregado = prompt("Peso:", doc.peso_entregado || "");
       if (peso_entregado === null) return;
 
+      const combustible = prompt("Combustible:", doc.combustible || "");
+      if (combustible === null) return;
+
+      const no_vale = prompt("No. Vale:", doc.no_vale || "");
+      if (no_vale === null) return;
+
       const no_constancia_viaje = prompt("Constancia:", doc.no_constancia_viaje || "");
       if (no_constancia_viaje === null) return;
 
@@ -486,7 +499,9 @@
         piloto,
         no_orden_carga,
         peso_entregado,
-        no_constancia_viaje
+        no_constancia_viaje,
+        combustible,
+        no_vale
       };
 
       const response = await fetch(`${API_URL}/documents/${id}`, {
